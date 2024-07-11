@@ -1,7 +1,7 @@
 "use client";
 import { AudioRecorder } from "@/lib/audio";
 import { uploadBlob } from "@/lib/shazam";
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 
 /**
  *
@@ -22,12 +22,12 @@ export default function RecorderButton({
     AudioRecorder | undefined
   >();
 
-  useEffect(() => {
-    /**
-     * Setup the audio recorder instance
-     */
+  const connected = useRef(false);
 
-    if (typeof window !== "undefined") {
+  useEffect(() => {
+    if (typeof window !== "undefined" && !connected.current) {
+      connected.current = true;
+
       setAudioRecorder(new AudioRecorder());
       AudioRecorder.connect().catch((error: unknown) => {
         console.error(error);
@@ -43,7 +43,11 @@ export default function RecorderButton({
     if (isRecording) {
       const audioBlob = await audioRecorder.stopRecording();
 
-      await uploadBlob(audioBlob);
+      const formData = new FormData();
+      formData.append("audio_data", audioBlob, "file");
+      formData.append("type", "wav");
+      const res = await uploadBlob(formData);
+      console.log("response: ", res);
 
       setIsRecording(false);
     } else {

@@ -1,27 +1,19 @@
 "use server";
 
+const apiUrl = "http://localhost:443/";
+
 /**
  * Uploads audio blob to your server
- * @param audioBlob - The audio blob data
+ * @param audioData - The audio blob data
  * @returns A promise that resolves to the server response
  */
-export async function uploadBlob(audioBlob: Blob) {
-  const formData = new FormData();
-  formData.append("audio_data", audioBlob, "file");
-  formData.append("type", "wav");
+export async function uploadBlob(audioData: FormData) {
+  // Uncaught (in promise) Error: '' is not a valid HTTP method.
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    cache: "no-store",
+    body: audioData,
+  });
 
-  console.log("uploading audio blob to server...");
-
-  /*
-   * Your server endpoint to upload audio:
-   * Const apiUrl = "http://localhost:3000/upload/audio";
-   *
-   * Const response = await fetch(apiUrl, {
-   *   Method: "POST",
-   *   Cache: "no-cache",
-   *   Body: formData,
-   * });
-   *
-   * Return response.json();
-   */
+  return response.text();
 }

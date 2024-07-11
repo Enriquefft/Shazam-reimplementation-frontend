@@ -50,11 +50,6 @@ class AudioRecorder {
   }
 
   public async stopRecording() {
-    console.log("stopRecording");
-    console.log(this.mediaRecorder);
-    console.log(this.capturedStream);
-    console.log(this.audioBlobs);
-
     if (!this.mediaRecorder || !this.capturedStream) {
       throw new Error("Recording has not been started or already stopped.");
     }
