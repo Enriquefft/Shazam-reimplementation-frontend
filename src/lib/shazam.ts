@@ -1,6 +1,12 @@
 "use server";
+import { z } from "zod";
 
 const apiUrl = "http://localhost:443/";
+
+const shazamResponseSchema = z.object({
+  song_name: z.string(),
+  song_spotify_id: z.string().optional(), // Not yet implemented
+});
 
 /**
  * Uploads audio blob to your server
@@ -15,5 +21,5 @@ export async function uploadBlob(audioData: FormData) {
     body: audioData,
   });
 
-  return response.text();
+  return shazamResponseSchema.parse(response.text());
 }
