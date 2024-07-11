@@ -152,7 +152,6 @@ const config = {
     "plugin:@typescript-eslint/all",
     "prettier",
     "plugin:tailwindcss/recommended",
-    "plugin:drizzle/all",
     "plugin:jsx-a11y/strict",
   ],
   rules: defaultRules,
