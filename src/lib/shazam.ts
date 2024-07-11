@@ -3,10 +3,16 @@ import { z } from "zod";
 
 const apiUrl = "http://localhost:443/";
 
-const shazamResponseSchema = z.object({
-  song_name: z.string(),
-  song_spotify_id: z.string().optional(), // Not yet implemented
-});
+const shazamResponseSchema = z
+  .object({
+    song_name: z.string(),
+    song_spotify_id: z.string().optional(), // Not yet implemented
+  })
+  .or(
+    z.object({
+      error: z.literal("NOT_FOUND"),
+    }),
+  );
 
 /**
  * Uploads audio blob to your server
