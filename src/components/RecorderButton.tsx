@@ -39,17 +39,15 @@ export default function RecorderButton({
     if (!audioRecorder) {
       return;
     }
-
     if (isRecording) {
       const audioBlob = await audioRecorder.stopRecording();
+      setIsRecording(false);
 
       const formData = new FormData();
       formData.append("audio_data", audioBlob, "file");
       formData.append("type", "wav");
       const res = await uploadBlob(formData);
       console.log("response: ", res);
-
-      setIsRecording(false);
     } else {
       await audioRecorder.startRecording();
       setIsRecording(true);
