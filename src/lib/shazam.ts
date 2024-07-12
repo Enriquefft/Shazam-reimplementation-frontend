@@ -21,7 +21,7 @@ export async function uploadBlob(audioData: FormData) {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    return undefined;
   }
 
   return shazamResponseSchema.parse(await response.json());

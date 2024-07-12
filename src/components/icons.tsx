@@ -50,6 +50,31 @@ export function PlayIcon(props: { className?: string }) {
 /**
  * @param props - Icon props
  * @param props.className - Icon class name
+ * @returns Pause icon component
+ */
+export function PauseIcon(props: { className?: string }) {
+  return (
+    <svg
+      className={props.className}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="6" y="4" width="4" height="16" />
+      <rect x="14" y="4" width="4" height="16" />
+    </svg>
+  );
+}
+
+/**
+ * @param props - Icon props
+ * @param props.className - Icon class name
  * @returns Rewind icon component
  */
 export function RewindIcon(props: { className?: string }) {
