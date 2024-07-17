@@ -12,20 +12,20 @@ import { getLyrics } from "@/lib/lyrics";
 /**
  *
  * @param props - The component props
- * @param props.className - tailwindcss classes
- * @param props.text - The content of the button
+ * @param props.isLoading - loading prop
+ * @param props.setIsLoading - isLoading setter
  * @param props.setLyrics - lyrics setter
  * @param props.setTrackName - track name setter
  * @returns The Recorder button component
  */
 export default function RecorderButton({
-  className,
-  text,
+  isLoading,
+  setIsLoading,
   setLyrics,
   setTrackName,
 }: {
-  className?: string;
-  text: string;
+  isLoading: boolean;
+  setIsLoading: Dispatch<SetStateAction<boolean>>;
   setLyrics: Dispatch<SetStateAction<string>>;
   setTrackName: Dispatch<SetStateAction<string | undefined>>;
 }) {
@@ -59,6 +59,7 @@ export default function RecorderButton({
       formData.append("audio_data", audioBlob, "file");
       formData.append("type", "wav");
 
+      setIsLoading(true);
       const song_name = (await uploadBlob(formData))?.song_name;
       setTrackName(song_name);
 
@@ -67,12 +68,25 @@ export default function RecorderButton({
       await audioRecorder.startRecording();
       setIsRecording(true);
     }
+    setIsLoading(false);
+  };
+
+  const getButtonText = (): string => {
+    if (isRecording) return "Stop Recording";
+    if (isLoading) return "Loading";
+    return "Speak";
   };
 
   return (
-    <button className={className} onClick={handleRecordingClick}>
+    <button
+      className={`relative size-32 rounded-full bg-gradient-to-br from-pink-500 to-cyan-500 p-1 before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-br before:from-pink-500 before:to-cyan-500 before:opacity-50 before:blur-2xl before:content-[''] after:absolute after:inset-0 after:rounded-full after:bg-gradient-to-br after:from-pink-500 after:to-cyan-500 after:opacity-50 after:blur-2xl after:content-[''] ${
+        !isRecording && "motion-safe:animate-pulse"
+      }`}
+      onClick={handleRecordingClick}
+      disabled={isLoading}
+    >
       <div className="flex size-full items-center justify-center rounded-full bg-gray-900 text-4xl font-bold text-pink-500">
-        {isRecording ? "Stop Recording" : text}
+        {getButtonText()}
       </div>
     </button>
   );

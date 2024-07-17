@@ -29,7 +29,9 @@ export async function getLyrics(
   const res = await fetch(encodeURI(`${LYRICS_BASE_URL}/${songName}`));
   if (!res.ok) {
     return {
-      lyrics: `no lyrics found for ${songName}`,
+      lyrics: `no lyrics found${
+        songName === undefined ? "." : ` for ${songName}.`
+      }`,
       title: "",
       artist: "",
       image:
