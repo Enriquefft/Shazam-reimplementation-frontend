@@ -142,6 +142,7 @@ const config = {
     "**/schema.gen*",
     "experimental",
     "src/components/ui/*",
+        "public"
   ],
   parserOptions,
   extends: [
