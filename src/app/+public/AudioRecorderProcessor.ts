@@ -1,12 +1,16 @@
 class AudioRecorderProcessor extends AudioWorkletProcessor {
-  constructor() {
+  public bufferSize: number;
+  public buffer: Float32Array;
+  public position: number;
+
+  public constructor() {
     super();
     this.bufferSize = 4096;
     this.buffer = new Float32Array(this.bufferSize);
     this.position = 0;
   }
 
-  process(inputs, outputs, parameters) {
+  public process(inputs: Float32Array[][]) {
     const input = inputs.at(0)?.at(0);
 
     if (!input) {

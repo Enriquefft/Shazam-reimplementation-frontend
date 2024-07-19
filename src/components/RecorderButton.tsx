@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { AudioRecorder } from "@/lib/audio";
 import { uploadBlob } from "@/lib/shazam";
 import {
   useRef,
@@ -17,10 +16,10 @@ const writeString = (view: DataView, offset: number, string: string) => {
   });
 };
 
-const handleRecordingComplete = async (chunks: Float32Array[]) => {
+const handleRecordingComplete = (chunks: Float32Array[]) => {
   console.log(chunks);
   const audioData = new Float32Array(
-    chunks.reduce((acc, curr) => acc + curr.length, 0)
+    chunks.reduce((acc, curr) => acc + curr.length, 0),
   );
   let offset = 0;
   for (const chunk of chunks) {
@@ -66,18 +65,11 @@ const handleRecordingComplete = async (chunks: Float32Array[]) => {
     wavDataView.setInt16(
       index * 2,
       clamp < 0 ? clamp * 0x8000 : clamp * 0x7fff,
-      true
+      true,
     );
   });
 
-  const formData = new FormData();
-
-  const audioBlob = new Blob([wavBuffer], { type: "audio/wav" });
-
-  formData.append("audio_data", audioBlob, "file");
-  formData.append("type", "wav");
-
-  console.log(window.URL.createObjectURL(audioBlob));
+  return new Blob([wavBuffer], { type: "audio/wav" });
 };
 
 const RECORDING_DURATION_MS = 4000;
@@ -103,41 +95,43 @@ export default function RecorderButton({
   setTrackName: Dispatch<SetStateAction<string | undefined>>;
 }) {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioRecorder, setAudioRecorder] = useState<
-    AudioRecorder | undefined
-  >();
-
-  const connected = useRef(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioWorkletRef = useRef<AudioWorkletNode | null>(null);
   const chunksRef = useRef<Float32Array[]>([]);
-  const intervalRef = useRef<Timer | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const initializeAudioContext = async () => {
       audioContextRef.current = new AudioContext();
       await audioContextRef.current.audioWorklet.addModule(
-        "/AudioRecorderProcessor.js"
+        "/AudioRecorderProcessor.js",
       );
     };
     initializeAudioContext().catch((error: unknown) => {
       console.error("Error initializing audio context", error);
     });
-
-    if (typeof window !== "undefined" && !connected.current) {
-      connected.current = true;
-      const newAudioRecorder = new AudioRecorder();
-      newAudioRecorder.connect().catch((error: unknown) => {
-        console.error(error);
-      });
-      setAudioRecorder(newAudioRecorder);
-    }
   }, []);
 
-  const startRecording = async () => {
-    await audioRecorder?.startRecording();
+  const handleSetters = async (audioBlob: Blob) => {
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append("audio_data", audioBlob, "file");
+    formData.append("type", "wav");
+    const shazamResponse = await uploadBlob(formData);
 
+    setIsLoading(false);
+    if (!shazamResponse) {
+      return;
+    }
+
+    setTrackName(shazamResponse.song_name);
+    setLyrics(
+      (await getLyrics(shazamResponse.song_name))?.lyrics ?? "LYRICS NOT FOUND",
+    );
+  };
+
+  const startRecording = async () => {
     if (!audioContextRef.current) {
       throw new Error("Audio context not initialized");
     }
@@ -146,12 +140,12 @@ export default function RecorderButton({
     const source = audioContextRef.current.createMediaStreamSource(stream);
     audioWorkletRef.current = new AudioWorkletNode(
       audioContextRef.current,
-      "audio-recorder-processor"
+      "audio-recorder-processor",
     );
     source.connect(audioWorkletRef.current);
     audioWorkletRef.current.connect(audioContextRef.current.destination);
     audioWorkletRef.current.port.onmessage = (
-      event: MessageEvent<{ buffer: Float32Array }>
+      event: MessageEvent<{ buffer: Float32Array }>,
     ) => {
       const { buffer } = event.data;
       chunksRef.current.push(buffer);
@@ -160,44 +154,32 @@ export default function RecorderButton({
 
     // Start the interval to receive chunks every 4 seconds
     intervalRef.current = setInterval(() => {
-      handleRecordingComplete(chunksRef.current).catch((error: unknown) => {
-        console.error("Couldn't process an audio chunk, ", error);
+      const audioBlob = handleRecordingComplete(chunksRef.current);
+      handleSetters(audioBlob).catch((error: unknown) => {
+        console.error("Error setting setters", error);
       });
       chunksRef.current = [];
     }, RECORDING_DURATION_MS);
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     audioWorkletRef.current?.disconnect();
+
+    setIsRecording(false);
+
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-    handleRecordingComplete(chunksRef.current).catch((error: unknown) => {
-      console.error("Couldn't process last audio chunk, ", error);
+    const audioBlob = handleRecordingComplete(chunksRef.current);
+    handleSetters(audioBlob).catch((error: unknown) => {
+      console.error("Error setting setters", error);
     });
     chunksRef.current = [];
-
-    if (!audioRecorder) {
-      return;
-    }
-
-    const audioBlob = await audioRecorder.stopRecording();
-
-    const formData = new FormData();
-    formData.append("audio_data", audioBlob, "file");
-    formData.append("type", "wav");
-
-    setIsLoading(true);
-    const song_name = (await uploadBlob(formData))?.song_name;
-    setTrackName(song_name);
-
-    setLyrics((await getLyrics(song_name))?.lyrics ?? "LYRICS NOT FOUND");
-    setIsLoading(false);
   };
 
   const handleRecordingClick = async () => {
     if (isRecording) {
-      await stopRecording();
+      stopRecording();
       setIsRecording(false);
     } else {
       await startRecording();

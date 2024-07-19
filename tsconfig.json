@@ -11,6 +11,7 @@
     "**/*.cjs",
     "**/*.mjs",
     ".eslintrc.cjs",
+    "public",
     "happydom.ts"
   ],
 
