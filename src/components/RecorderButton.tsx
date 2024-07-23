@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { uploadBlob } from "@/lib/shazam";
-import { useRef, useState, type SetStateAction, type Dispatch } from "react";
+import {
+  useRef,
+  useEffect,
+  useState,
+  type SetStateAction,
+  type Dispatch,
+} from "react";
 import { getLyrics } from "@/lib/lyrics";
 
 // Helper function to write strings to the DataView
@@ -66,7 +72,7 @@ const handleRecordingComplete = (chunks: Float32Array[]) => {
   return new Blob([wavBuffer], { type: "audio/wav" });
 };
 
-const RECORDING_DURATION_MS = 15000;
+const RECORDING_DURATION_MS = 4000;
 
 /**
  *
@@ -95,12 +101,17 @@ export default function RecorderButton({
   const chunksRef = useRef<Float32Array[]>([]);
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const initializeAudioContext = async () => {
-    audioContextRef.current = new AudioContext();
-    await audioContextRef.current.audioWorklet.addModule(
-      "/AudioRecorderProcessor.js",
-    );
-  };
+  useEffect(() => {
+    const initializeAudioContext = async () => {
+      audioContextRef.current = new AudioContext();
+      await audioContextRef.current.audioWorklet.addModule(
+        "/AudioRecorderProcessor.js",
+      );
+    };
+    initializeAudioContext().catch((error: unknown) => {
+      console.error("Error initializing audio context", error);
+    });
+  }, []);
 
   const handleSetters = async (audioBlob: Blob) => {
     setIsLoading(true);
@@ -121,9 +132,6 @@ export default function RecorderButton({
   };
 
   const startRecording = async () => {
-    if (!audioContextRef.current) {
-      await initializeAudioContext();
-    }
     if (!audioContextRef.current) {
       throw new Error("Audio context not initialized");
     }
