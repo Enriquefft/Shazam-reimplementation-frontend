@@ -24,7 +24,6 @@ class AudioRecorder {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
-          sampleRate: 44100,
         },
       });
 
