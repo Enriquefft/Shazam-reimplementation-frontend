@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /scripts
-Sitemap: https://https://googlechromelabs.github.io/web-audio-samples/sitemap.xml
