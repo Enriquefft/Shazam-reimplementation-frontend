@@ -11,10 +11,11 @@
     "**/*.cjs",
     "**/*.mjs",
     ".eslintrc.cjs",
+    "public/*.js",
     "happydom.ts"
   ],
 
-  "exclude": ["node_modules", "public/*.js"],
+  "exclude": ["node_modules"],
 
   "compilerOptions": {
     "plugins": [
