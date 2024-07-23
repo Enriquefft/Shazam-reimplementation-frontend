@@ -1,7 +1,6 @@
 "use server";
 import { z } from "zod";
-
-const apiUrl = "http://localhost:443/";
+import { env } from "@/env.mjs";
 
 const shazamResponseSchema = z.object({
   song_name: z.string(),
@@ -14,7 +13,7 @@ const shazamResponseSchema = z.object({
  * @returns A promise that resolves to the server response
  */
 export async function uploadBlob(audioData: FormData) {
-  const response = await fetch(apiUrl, {
+  const response = await fetch(env.SHAZAM_API, {
     method: "POST",
     cache: "no-store",
     body: audioData,
