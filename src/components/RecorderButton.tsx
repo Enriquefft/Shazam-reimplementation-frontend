@@ -70,8 +70,6 @@ const handleRecordingComplete = async (chunks: Float32Array[]) => {
 
   formData.append("audio_data", audioBlob, "file");
   formData.append("type", "wav");
-
-  console.log(window.URL.createObjectURL(audioBlob));
 };
 
 const RECORDING_DURATION_MS = 4000;
@@ -107,7 +105,7 @@ export default function RecorderButton({
     const initializeAudioContext = async () => {
       audioContextRef.current = new AudioContext();
       await audioContextRef.current.audioWorklet.addModule(
-        "/AudioRecorderProcessor.js",
+        "../src/components/AudioRecorderProcessor.js",
       );
     };
     initializeAudioContext().catch((error: unknown) => {
@@ -139,7 +137,7 @@ export default function RecorderButton({
     // Start the interval to receive chunks every 4 seconds
     intervalRef.current = setInterval(() => {
       handleRecordingComplete(chunksRef.current).catch((error: unknown) => {
-        console.error("Couldn't process an audio chunk, ", error);
+        console.error("Could process an audio chunk, ", error);
       });
       chunksRef.current = [];
     }, RECORDING_DURATION_MS);
@@ -152,7 +150,7 @@ export default function RecorderButton({
       clearInterval(intervalRef.current);
     }
     handleRecordingComplete(chunksRef.current).catch((error: unknown) => {
-      console.error("Couldn't process last audio chunk, ", error);
+      console.error("Could process last audio chunk, ", error);
     });
     chunksRef.current = [];
   };
