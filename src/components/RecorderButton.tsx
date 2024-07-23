@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-import { AudioRecorder } from "@/lib/audio";
 import { uploadBlob } from "@/lib/shazam";
 import {
   useRef,
@@ -12,15 +10,15 @@ import { getLyrics } from "@/lib/lyrics";
 
 // Helper function to write strings to the DataView
 const writeString = (view: DataView, offset: number, string: string) => {
-  string.split("").forEach((letter, index) => {
-    view.setUint8(offset + index, letter.charCodeAt(0));
-  });
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
 };
 
 const handleRecordingComplete = async (chunks: Float32Array[]) => {
   console.log(chunks);
   const audioData = new Float32Array(
-    chunks.reduce((acc, curr) => acc + curr.length, 0)
+    chunks.reduce((acc, curr) => acc + curr.length, 0),
   );
   let offset = 0;
   for (const chunk of chunks) {
@@ -38,10 +36,10 @@ const handleRecordingComplete = async (chunks: Float32Array[]) => {
 
   // RIFF chunk descriptor
   writeString(view, 0, "RIFF");
-  view.setUint32(4, 36 + audioData.length * 2, true); // File length - 8
+  view.setUint32(4, 36 + audioData.length * 2, true); // file length - 8
   writeString(view, 8, "WAVE");
 
-  // Fmt sub-chunk
+  // fmt sub-chunk
   writeString(view, 12, "fmt ");
   view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
   view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
@@ -51,7 +49,7 @@ const handleRecordingComplete = async (chunks: Float32Array[]) => {
   view.setUint16(32, numChannels * 2, true); // BlockAlign (NumChannels * BitsPerSample/8)
   view.setUint16(34, 16, true); // BitsPerSample (16 bits per sample)
 
-  // Data sub-chunk
+  // data sub-chunk
   writeString(view, 36, "data");
   view.setUint32(40, audioData.length * 2, true); // Subchunk2Size (NumSamples * NumChannels * BitsPerSample/8)
 
@@ -61,14 +59,10 @@ const handleRecordingComplete = async (chunks: Float32Array[]) => {
 
   // Use DataView to write audio data to the buffer
   const wavDataView = new DataView(wavBuffer.buffer, header.byteLength);
-  audioData.forEach((audio, index) => {
-    const clamp = Math.max(-1, Math.min(1, audio)); // Clamping
-    wavDataView.setInt16(
-      index * 2,
-      clamp < 0 ? clamp * 0x8000 : clamp * 0x7fff,
-      true
-    );
-  });
+  for (let i = 0; i < audioData.length; i++) {
+    const s = Math.max(-1, Math.min(1, audioData[i])); // Clamping
+    wavDataView.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
 
   const formData = new FormData();
 
@@ -103,41 +97,25 @@ export default function RecorderButton({
   setTrackName: Dispatch<SetStateAction<string | undefined>>;
 }) {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioRecorder, setAudioRecorder] = useState<
-    AudioRecorder | undefined
-  >();
-
-  const connected = useRef(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioWorkletRef = useRef<AudioWorkletNode | null>(null);
   const chunksRef = useRef<Float32Array[]>([]);
-  const intervalRef = useRef<Timer | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const initializeAudioContext = async () => {
       audioContextRef.current = new AudioContext();
       await audioContextRef.current.audioWorklet.addModule(
-        "/AudioRecorderProcessor.js"
+        "/AudioRecorderProcessor.js",
       );
     };
     initializeAudioContext().catch((error: unknown) => {
       console.error("Error initializing audio context", error);
     });
-
-    if (typeof window !== "undefined" && !connected.current) {
-      connected.current = true;
-      const newAudioRecorder = new AudioRecorder();
-      newAudioRecorder.connect().catch((error: unknown) => {
-        console.error(error);
-      });
-      setAudioRecorder(newAudioRecorder);
-    }
   }, []);
 
   const startRecording = async () => {
-    await audioRecorder?.startRecording();
-
     if (!audioContextRef.current) {
       throw new Error("Audio context not initialized");
     }
@@ -146,12 +124,12 @@ export default function RecorderButton({
     const source = audioContextRef.current.createMediaStreamSource(stream);
     audioWorkletRef.current = new AudioWorkletNode(
       audioContextRef.current,
-      "audio-recorder-processor"
+      "audio-recorder-processor",
     );
     source.connect(audioWorkletRef.current);
     audioWorkletRef.current.connect(audioContextRef.current.destination);
     audioWorkletRef.current.port.onmessage = (
-      event: MessageEvent<{ buffer: Float32Array }>
+      event: MessageEvent<{ buffer: Float32Array }>,
     ) => {
       const { buffer } = event.data;
       chunksRef.current.push(buffer);
@@ -167,8 +145,9 @@ export default function RecorderButton({
     }, RECORDING_DURATION_MS);
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     audioWorkletRef.current?.disconnect();
+    setIsRecording(false);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -176,28 +155,11 @@ export default function RecorderButton({
       console.error("Couldn't process last audio chunk, ", error);
     });
     chunksRef.current = [];
-
-    if (!audioRecorder) {
-      return;
-    }
-
-    const audioBlob = await audioRecorder.stopRecording();
-
-    const formData = new FormData();
-    formData.append("audio_data", audioBlob, "file");
-    formData.append("type", "wav");
-
-    setIsLoading(true);
-    const song_name = (await uploadBlob(formData))?.song_name;
-    setTrackName(song_name);
-
-    setLyrics((await getLyrics(song_name))?.lyrics ?? "LYRICS NOT FOUND");
-    setIsLoading(false);
   };
 
   const handleRecordingClick = async () => {
     if (isRecording) {
-      await stopRecording();
+      stopRecording();
       setIsRecording(false);
     } else {
       await startRecording();

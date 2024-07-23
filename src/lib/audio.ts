@@ -1,12 +1,7 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import type { IMediaRecorder, IBlobEvent } from "extendable-media-recorder";
+const SAMPLE_RATE = 44100;
 
 import createLinkFromAudioBuffer from "@/lib/autoUtils";
 import { RecordingProcessor } from "@/lib/audioProcesor";
-
-const SAMPLE_RATE = 44100;
 
 enum RecorderStates {
   UNINITIALIZED = 0,
@@ -23,10 +18,6 @@ class AudioRecorder {
   private micSourceNode: MediaStreamAudioSourceNode | null = null;
   private readonly context = new AudioContext({ sampleRate: SAMPLE_RATE });
 
-  private mediaRecorder?: IMediaRecorder;
-  private audioBlobs?: Blob[];
-  private capturedStream?: MediaStream;
-
   public async connect() {
     registerProcessor("recording-processor", RecordingProcessor);
 
@@ -37,7 +28,7 @@ class AudioRecorder {
     await this.context.audioWorklet.addModule("/recording-processor.js");
   }
 
-  public async startRecordingForDownload() {
+  public async startRecording() {
     if (this.recordingState === RecorderStates.UNINITIALIZED) {
       await this.initializeAudio();
       this.recordingState = RecorderStates.RECORDING;
@@ -54,39 +45,7 @@ class AudioRecorder {
     }
   }
 
-  public async startRecording() {
-    const { MediaRecorder } = await import("extendable-media-recorder");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          sampleRate: 44100,
-        },
-      });
-
-      this.audioBlobs = [];
-      this.capturedStream = stream;
-
-      // Use the extended MediaRecorder library
-      this.mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/wav",
-      });
-
-      // Add audio blobs while recording
-      this.mediaRecorder.addEventListener(
-        "dataavailable",
-        (event: IBlobEvent) => {
-          this.audioBlobs?.push(event.data);
-        }
-      );
-
-      this.mediaRecorder.start();
-    } catch (error) {
-      console.error("startRecording error", error);
-    }
-  }
-
-  public async stopRecordingForDownload(): Promise<Blob | undefined> {
+  public async stopRecording(): Promise<Blob | undefined> {
     if (this.recordingState === RecorderStates.RECORDING) {
       this.recordingState = RecorderStates.PAUSED;
       this.processorPort?.postMessage({
@@ -99,15 +58,10 @@ class AudioRecorder {
             "message",
             function handler(event: MessageEvent) {
               if (event.data.message === "SHARE_RECORDING_BUFFER") {
-                // eslint-disable-next-line @typescript-eslint/no-invalid-this
                 this.removeEventListener("message", handler);
-                resolve(
-                  event.data.buffer as
-                    | Float32Array[]
-                    | PromiseLike<Float32Array[]>
-                );
+                resolve(event.data.buffer);
               }
-            }
+            },
           );
           this.processorPort?.postMessage({
             message: "REQUEST_RECORDING_BUFFER",
@@ -117,27 +71,6 @@ class AudioRecorder {
       }
     }
     return undefined;
-  }
-
-  public async stopRecording() {
-    if (!this.mediaRecorder || !this.capturedStream) {
-      throw new Error("Recording has not been started or already stopped.");
-    }
-
-    return new Promise<Blob>((resolve) => {
-      this.mediaRecorder?.addEventListener("stop", () => {
-        const mimeType = this.mediaRecorder?.mimeType ?? "audio/wav";
-        const audioBlob = new Blob(this.audioBlobs, { type: mimeType });
-
-        this.capturedStream?.getTracks().forEach((track) => {
-          track.stop();
-        });
-
-        resolve(audioBlob);
-      });
-
-      this.mediaRecorder?.stop();
-    });
   }
 
   private async initializeAudio() {
@@ -166,7 +99,7 @@ class AudioRecorder {
       "recording-processor",
       {
         processorOptions: recordingProperties,
-      }
+      },
     );
     this.processorPort = this.recordingNode.port;
     this.processorPort.onmessage = this.handleRecordingEvents.bind(this);
@@ -186,13 +119,13 @@ class AudioRecorder {
 
     if (event.data.message === "MAX_RECORDING_LENGTH_REACHED") {
       this.recordingState = RecorderStates.FINISHED;
-      this.createRecord(event.data.buffer as Float32Array[]);
+      this.createRecord(event.data.buffer);
     }
     if (event.data.message === "UPDATE_RECORDING_LENGTH") {
-      this.recordingLength = Number(event.data.recordingLength);
+      this.recordingLength = event.data.recordingLength;
     }
     if (event.data.message === "SHARE_RECORDING_BUFFER") {
-      this.createRecord(event.data.buffer as Float32Array[]);
+      this.createRecord(event.data.buffer);
     }
   }
 
@@ -201,7 +134,7 @@ class AudioRecorder {
     const recordingBuffer = this.context.createBuffer(
       this.micSourceNode.channelCount,
       this.recordingLength,
-      this.context.sampleRate
+      this.context.sampleRate,
     );
 
     for (
@@ -216,7 +149,7 @@ class AudioRecorder {
       recordingBuffer.copyToChannel(
         dataBuffer[channel] ?? new Float32Array(),
         channel,
-        0
+        0,
       );
     }
 

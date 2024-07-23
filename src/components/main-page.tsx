@@ -162,6 +162,40 @@ function AudioControls({ songUrl }: { songUrl?: string }) {
 }
 
 /**
+ * @returns Add to Shazam component
+ */
+/*
+ *Function AddToShazam() {
+ *return (
+ *  <section className="flex w-full max-w-md flex-col items-start justify-start gap-6 rounded-lg bg-gray-800 p-6 shadow-2xl">
+ *    <header className="w-full">
+ *      <h2 className="text-2xl font-bold text-white">Add Song to Shazam</h2>
+ *      <p className="mt-4 text-gray-400">
+ *        Add the current song to your Shazam playlist.
+ *      </p>
+ *      <div className="mt-4 flex flex-col gap-4">
+ *        <div className="flex items-center gap-2">
+ *          <Label htmlFor="playlist-id" className="text-gray-400">
+ *            Playlist ID:
+ *          </Label>
+ *          <Input
+ *            id="playlist-id"
+ *            type="text"
+ *            placeholder="Enter playlist ID"
+ *            className="w-full rounded-lg bg-gray-900 px-4 py-2 text-gray-400 focus:outline-none"
+ *          />
+ *        </div>
+ *        <Button className="w-full rounded-lg bg-gradient-to-br from-pink-500 to-cyan-500 px-4 py-2 text-gray-900">
+ *          Add to Shazam
+ *        </Button>
+ *      </div>
+ *    </header>
+ *  </section>
+ *);
+ *}
+ */
+
+/**
  * @returns Main page component
  */
 export default function MainPage() {
@@ -189,6 +223,7 @@ export default function MainPage() {
           </div>
         )}
       </div>
+      {/* <AddToShazam /> */}
     </main>
   );
 }

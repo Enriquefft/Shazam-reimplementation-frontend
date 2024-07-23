@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 const FRAMES_PER_BLOCK = 128; // Frames processed per block
 const PUBLISH_RATE_HZ = 60; // Publish rate in Hz
 
@@ -72,7 +70,7 @@ export class RecordingProcessor extends AudioWorkletProcessor {
 
   public process(
     inputs: Float32Array[][],
-    outputs: Float32Array[][]
+    outputs: Float32Array[][],
     // Params: Record<string, Float32Array>,
   ): boolean {
     const input = inputs.at(0) ?? [];
@@ -83,7 +81,7 @@ export class RecordingProcessor extends AudioWorkletProcessor {
 
       if (this.recordingBuffer.at(channel) === undefined) {
         this.recordingBuffer[channel] = new Float32Array(
-          this.maxRecordingFrames
+          this.maxRecordingFrames,
         );
       }
 
