@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { env } from "@/env.mjs";
 
-console.log(env.SHAZAM_API);
+console.log(env.SHAZAM_API)
 
 const shazamResponseSchema = z.object({
   song_name: z.string(),
